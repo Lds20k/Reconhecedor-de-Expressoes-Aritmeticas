@@ -105,15 +105,27 @@ def custom_map(list)
     return temp
 end
 
-entrada = "1 / 3 + 4"
-reconhecido = Reconhecedor.parse(entrada.delete(' '))
-reconhecido = custom_map(reconhecido).compact
+entrada = ''
 
-puts "Entrada: " + entrada
-puts
+while true && entrada != 'quit'
+    puts "Digite uma entrada para ser interpretada (digite quit para sair):"
+    entrada = gets.chomp.strip
 
-puts "---------------------------------------------------"
-puts "Nome \t\t\t| Tipo \t\t| Valor"
-puts "---------------------------------------------------"
-puts reconhecido
-puts "---------------------------------------------------"
+    if entrada != 'quit'
+        reconhecido = Reconhecedor.parse(entrada.delete(' '))
+        if reconhecido != nil && entrada != ''
+            reconhecido = custom_map(reconhecido).compact
+            
+            puts "Entrada: " + entrada
+            puts
+
+            puts "---------------------------------------------------"
+            puts "Nome \t\t\t| Tipo \t\t| Valor"
+            puts "---------------------------------------------------"
+            puts reconhecido
+            puts "---------------------------------------------------"        
+        else
+            puts "Digite uma entrada válida\n"
+        end
+    end
+end
