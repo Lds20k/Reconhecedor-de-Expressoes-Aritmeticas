@@ -104,25 +104,33 @@ def custom_map(list)
     end
     return temp
 end
+condicao_continuar = true
 
-system("clear") || system("cls")
-puts "Digite uma conta:"
-entrada = gets
-entrada = entrada.chomp
-system("clear") || system("cls")
-reconhecido = Reconhecedor.parse(entrada.delete(' '))
+while condicao_continuar
+    system("clear") || system("cls")
+    puts "Digite uma expressão:"
+    entrada = gets().chomp().strip()
+    system("clear") || system("cls")
+    reconhecido = Reconhecedor.parse(entrada.delete(' '))
 
-if reconhecido != nil
-    reconhecido = custom_map(reconhecido).compact
+    if reconhecido != nil
+        reconhecido = custom_map(reconhecido).compact
 
-    puts "Entrada: " + entrada
-    puts
+        puts "Entrada: " + entrada
+        puts
 
-    puts "---------------------------------------------------"
-    puts "Nome \t\t\t| Tipo \t\t| Valor"
-    puts "---------------------------------------------------"
-    puts reconhecido
-    puts "---------------------------------------------------"
-else
-    puts "Não reconhecido!"
+        puts "---------------------------------------------------"
+        puts "Nome \t\t\t| Tipo \t\t| Valor"
+        puts "---------------------------------------------------"
+        puts reconhecido
+        puts "---------------------------------------------------"
+    else
+        puts "Não reconhecido!"
+    end
+
+    puts "Se deseja sair digite 'S' senão pressione enter:"
+    parar = gets().chomp().strip().upcase()
+    if parar[0] == 'S'
+        condicao_continuar = false
+    end
 end
