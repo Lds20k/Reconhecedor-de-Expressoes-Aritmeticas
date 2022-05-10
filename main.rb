@@ -34,13 +34,27 @@ module Reconhecedor include Raabro
 
     # Operação 3
 
-    def simbolopotencia(i); rex(nil, i, /\^/); end
-    def seqoperacao3(i); seq(:seqoperacao3, i, :estrutura, :simbolopotencia, :estrutura); end
+    def simbolopotencia(i); rex(:simbolopotencia, i, /\^/); end
+    def operacao3segundaparte(i); seq(:operacao3segundaparte, i, :simbolopotencia, :operacao3); end
+    def seqoperacao3(i); seq(:seqoperacao3, i, :estrutura, :operacao3segundaparte, "+"); end
     def operacao3(i); alt(:operacao3, i, :seqoperacao3, :estrutura); end
+
+    def rewrite_simbolopotencia(t)
+        'potencia'
+    end
+
+    def rewrite_operacao3segundaparte(t)
+        folhas = t.children
+        folhas.collect { |e| rewrite(e)}.append "]"
+    end
 
     def rewrite_seqoperacao3(t)
         folhas = t.children
-        folhas.collect { |e| rewrite(e)}.append("Potencia \t\t| Binária \t| " + t.string)
+        retorno = folhas.collect { |e| rewrite(e)}
+        for i in 1..folhas.length - 1 
+            retorno.unshift "["
+        end
+        retorno
     end
 
     def rewrite_operacao3(t)
@@ -146,8 +160,8 @@ def cascata(lista, temp = [])
             lista.delete_at(0) #INICIO [
             aux.append(cascata(lista))
             lista.delete_at(0) #FINAL ]
-        elsif lista[0].match(/soma|diferenca|multiplicacao|divisao/)
-            aux.append(lista.delete_at(0)) #SOMA|DIFERENCA|MULTIPLICACAO|DIVISAO
+        elsif lista[0].match(/soma|diferenca|multiplicacao|divisao|potencia/)
+            aux.append(lista.delete_at(0)) #SOMA|DIFERENCA|MULTIPLICACAO|DIVISAO|POTENCIA
             if lista[0].match(/[0-9]+/)
                 aux.append(lista.delete_at(0)) #NUMERO
                 return aux
@@ -155,8 +169,10 @@ def cascata(lista, temp = [])
         elsif not lista[0].match(/\]/)
             aux.append(lista.delete_at(0)) #NUMERO
             aux.append(lista.delete_at(0)) #OPERACAO
-            aux.append(lista.delete_at(0)) #NUMERO
-            return aux
+            if lista[0].match(/[0-9]+/)
+                aux.append(lista.delete_at(0)) #NUMERO
+                return aux
+            end
         else
             return aux
         end
@@ -183,8 +199,7 @@ condicao_continuar = true
 while condicao_continuar
     system("clear") || system("cls")
     puts "Digite uma expressão:"
-    entrada = "(100+100+100)*100/100"
-    #entrada = gets().chomp().strip()
+    entrada = gets().chomp().strip()
     system("clear") || system("cls")
     reconhecido = Reconhecedor.parse(entrada.delete(' '))
 
