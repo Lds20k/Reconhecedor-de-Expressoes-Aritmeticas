@@ -1,4 +1,5 @@
 require 'raabro'
+require 'json'
 
 module Reconhecedor include Raabro
     def digito(i); rex(:digito, i, /[0-9]+/); end
@@ -13,17 +14,17 @@ module Reconhecedor include Raabro
     def estrutura(i); alt(:estrutura, i, :parenteses, :menos, :digito); end
 
     def rewrite_digito(t)
-        "Número \t\t\t| Unária \t| " + t.string
+        t.string
     end
 
     def rewrite_menos(t)
         folhas = t.children
-        folhas.collect { |e| rewrite(e)}.append("Negativação \t\t| Unária \t| " + t.string)
+        folhas.collect { |e| rewrite(e)}.append(t.string)
     end
 
     def rewrite_parenteses(t)
         folhas = t.children
-        folhas.collect { |e| rewrite(e)}.append("Parenteses \t\t| Unária \t| " + t.string)
+        folhas.collect { |e| rewrite(e)}
     end
 
     def rewrite_estrutura(t)
@@ -49,15 +50,33 @@ module Reconhecedor include Raabro
 
     # Operação 2
 
-    def simbolomultiplicacao(i); rex(nil, i, /\*/); end
-    def simbolodivisao(i); rex(nil, i, /\//); end
+    def simbolomultiplicacao(i); rex(:simbolomultiplicacao, i, /\*/); end
+    def simbolodivisao(i); rex(:simbolodivisao, i, /\//); end
     def simbolooperacao2(i); alt(:operacao2, i, :simbolomultiplicacao, :simbolodivisao); end
-    def seqoperacao2(i); seq(:seqoperacao2, i, :operacao3, :simbolooperacao2, :operacao2); end
+    def operacao2segundaparte(i); seq(:operacao2segundaparte, i, :simbolooperacao2, :operacao3); end
+    def seqoperacao2(i); seq(:seqoperacao2, i, :operacao3, :operacao2segundaparte, "+"); end
     def operacao2(i); alt(:operacao2, i, :seqoperacao2, :operacao3); end
+
+    def rewrite_simbolomultiplicacao(t)
+        'multiplicacao'
+    end
+
+    def rewrite_simbolodivisao(t)
+        'divisao'
+    end
+
+    def rewrite_operacao2segundaparte(t)
+        folhas = t.children
+        folhas.collect { |e| rewrite(e)}.append "]"
+    end
 
     def rewrite_seqoperacao2(t)
         folhas = t.children
-        folhas.collect { |e| rewrite(e)}.append((folhas[1].string == "*" ? "Multiplicação" : "Divisão\t") + "\t\t| Binária \t| " + t.string)
+        retorno = folhas.collect { |e| rewrite(e)}
+        for i in 1..folhas.length - 1 
+            retorno.unshift "["
+        end
+        retorno
     end
 
     def rewrite_operacao2(t)
@@ -67,25 +86,40 @@ module Reconhecedor include Raabro
 
     # Operação 1
 
-    def simbolosoma(i); rex(nil, i, /\+/); end
-    def simbolodiferenca(i); rex(nil, i, /\-/); end
+    def simbolosoma(i); rex(:simbolosoma, i, /\+/); end
+    def simbolodiferenca(i); rex(:simbolodiferenca, i, /\-/); end
     def simbolooperacao1(i); alt(:operacao1, i, :simbolosoma, :simbolodiferenca); end
-    def seqoperacao1(i); seq(:seqoperacao1, i, :operacao2, :simbolooperacao1, :operacao1); end
+    def operacao1segundaparte(i); seq(:operacao1segundaparte, i, :simbolooperacao1, :operacao2); end
+    def seqoperacao1(i); seq(:seqoperacao1, i, :operacao2, :operacao1segundaparte, "+"); end
     def operacao1(i); alt(:operacao1, i, :seqoperacao1, :operacao2); end
+
+    def rewrite_simbolosoma(t)
+        'soma'
+    end
+
+    def rewrite_simbolodiferenca(t)
+        'diferenca'
+    end
+
+    def rewrite_operacao1segundaparte(t)
+        folhas = t.children
+        folhas.collect { |e| rewrite(e)}.append "]"
+    end
 
     def rewrite_seqoperacao1(t)
         folhas = t.children
-        folhas.collect { |e| rewrite(e)}.append((folhas[1].string == "+" ? "Soma\t": "Diferença") + "\t\t| Binária \t| " + t.string)
+        retorno = folhas.collect { |e| rewrite(e)}
+        for i in 1..folhas.length - 1 
+            retorno.unshift "["
+        end
+        retorno
     end
 
     def rewrite_operacao1(t)
         folhas = t.children
-        folhas.collect { |e| rewrite(e)}
-    end
-
-    def rewrite_operacao1(t)
-        folhas = t.children
-        folhas.collect { |e| rewrite(e)}
+        retorno = folhas.collect { |e| rewrite(e)}
+        #puts JSON.dump retorno
+        retorno
     end
 end
 
@@ -93,37 +127,76 @@ def is_array (a)
     return a.is_a?(Array)
 end
 
-def custom_map(list)
+def remover_nil(lista)
     temp = []
-    for i in list
+    for i in lista
         if not is_array(i)
             temp.append(i)
         else 
-            temp += custom_map(i) 
+            temp += remover_nil(i) 
         end
     end
     return temp
 end
-condicao_continuar = true
 
+def cascata(lista, temp = [])
+    aux = temp
+    while not lista.empty?
+        if lista[0].match(/\[/)
+            lista.delete_at(0) #INICIO [
+            aux.append(cascata(lista))
+            lista.delete_at(0) #FINAL ]
+        elsif lista[0].match(/soma|diferenca|multiplicacao|divisao/)
+            aux.append(lista.delete_at(0)) #SOMA|DIFERENCA|MULTIPLICACAO|DIVISAO
+            if lista[0].match(/[0-9]+/)
+                aux.append(lista.delete_at(0)) #NUMERO
+                return aux
+            end
+        elsif not lista[0].match(/\]/)
+            aux.append(lista.delete_at(0)) #NUMERO
+            aux.append(lista.delete_at(0)) #OPERACAO
+            aux.append(lista.delete_at(0)) #NUMERO
+            return aux
+        else
+            return aux
+        end
+    end
+    return temp[0]
+end
+
+def ordenar(lista)
+    lista.insert(0, '"' + lista.delete_at(1) + '"')
+    lista.insert(1, ', ')
+    if is_array(lista[2])
+        ordenar(lista[2])
+    end
+    lista.insert(3, ', ')
+    if is_array(lista[4])
+        ordenar(lista[4])
+    end
+
+    lista.insert(0, '[')
+    lista.insert(-1, ']')
+end
+
+condicao_continuar = true
 while condicao_continuar
     system("clear") || system("cls")
     puts "Digite uma expressão:"
-    entrada = gets().chomp().strip()
+    entrada = "(100+100+100)*100/100"
+    #entrada = gets().chomp().strip()
     system("clear") || system("cls")
     reconhecido = Reconhecedor.parse(entrada.delete(' '))
 
     if reconhecido != nil
-        reconhecido = custom_map(reconhecido).compact
+        reconhecido_p = remover_nil(reconhecido).compact
+        reconhecido_p = cascata(reconhecido_p)
+        ordenar(reconhecido_p)
 
         puts "Entrada: " + entrada
         puts
 
-        puts "---------------------------------------------------"
-        puts "Nome \t\t\t| Tipo \t\t| Valor"
-        puts "---------------------------------------------------"
-        puts reconhecido
-        puts "---------------------------------------------------"
+        puts reconhecido_p.join()
     else
         puts "Não reconhecido!"
     end
