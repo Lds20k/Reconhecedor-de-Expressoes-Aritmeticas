@@ -18,8 +18,7 @@ module Reconhecedor include Raabro
     end
 
     def rewrite_menos(t)
-        folhas = t.children
-        folhas.collect { |e| rewrite(e)}.append(t.string)
+        t.string
     end
 
     def rewrite_parenteses(t)
@@ -199,7 +198,8 @@ condicao_continuar = true
 while condicao_continuar
     system("clear") || system("cls")
     puts "Digite uma expressão:"
-    entrada = gets().chomp().strip()
+    entrada = "1 ^ -1".chomp().strip()
+    #entrada = gets().chomp().strip()
     system("clear") || system("cls")
     reconhecido = Reconhecedor.parse(entrada.delete(' '))
 
