@@ -198,11 +198,12 @@ condicao_continuar = true
 while condicao_continuar
     system("clear") || system("cls")
     puts "Digite uma expressão:"
-    entrada = "1 ^ -1".chomp().strip()
-    #entrada = gets().chomp().strip()
-    system("clear") || system("cls")
-    reconhecido = Reconhecedor.parse(entrada.delete(' '))
+    entrada = gets().chomp().strip()
 
+    if entrada != ''
+        system("clear") || system("cls")
+        reconhecido = Reconhecedor.parse(entrada.delete(' '))
+    end
     if reconhecido != nil
         reconhecido_p = remover_nil(reconhecido).compact
         reconhecido_p = cascata(reconhecido_p)
@@ -220,5 +221,7 @@ while condicao_continuar
     parar = gets().chomp().strip().upcase()
     if parar[0] == 'S'
         condicao_continuar = false
+    else
+        reconhecido = nil 
     end
 end
